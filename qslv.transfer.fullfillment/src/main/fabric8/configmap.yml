@@ -1,0 +1,19 @@
+metadata:
+  name: bs-${project.artifactId}
+data:
+  application.properties: |
+    qslv.post-transaction-url=reservation-url=http://qslv-transaction-rest:8080/Transaction
+    qslv.commit-reservation-url=http://qslv-transaction-rest:8080/CommitReservation
+    qslv.rest-connect-timeout=500
+    qslv.rest-connection-request-timeout=500
+    qslv.rest-attempts=3
+    qslv.rest-backoff-delay=100
+    qslv.rest-backoff-delay-max=500
+    qslv.rest-timeout=500
+    qslv.kafka-transfer-request-queue=online.transfer.requests
+    qslv.kafka-dead-letter-queue=dlq.transfer.requests
+    qslv.kafka-properties=/deployments/config/kafka-consumer/kafka.properties
+    qslv.kafka-timeout=1000
+    management.endpoint.health.show-details=always
+    management.endpoint.health.show-components=always
+  

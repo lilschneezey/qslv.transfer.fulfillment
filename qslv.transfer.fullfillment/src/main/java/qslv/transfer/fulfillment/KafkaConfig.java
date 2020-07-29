@@ -1,5 +1,6 @@
 package qslv.transfer.fulfillment;
 
+import java.io.FileInputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,16 +42,19 @@ public class KafkaConfig {
 	public Map<String,Object> appKafkaConfig() throws Exception {
 		Properties kafkaconfig = new Properties();
 		try {
-			kafkaconfig
-					.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("app-kafka.properties"));
-		} catch (Exception ex) {
-			log.debug("app-kafka.properties not found.");
-			throw ex;
+			kafkaconfig.load(new FileInputStream(config.getKafkaProperties()));
+		} catch (Exception fileEx) {
+			try {
+				kafkaconfig.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(config.getKafkaProperties()));
+			} catch (Exception resourceEx) {
+				log.error("{} not found.", config.getKafkaProperties());
+				log.error("File Exception. {}", fileEx.toString());
+				log.error("Resource Exception. {}", resourceEx.toString());
+				throw resourceEx;
+			}
 		}
-		kafkaconfig.setProperty("enable.auto.commit", "false");
 		return new HashMap(kafkaconfig);
 	}
-
 	//--Fulfillment Message Consumer
     @Bean
     public ConsumerFactory<String, TraceableMessage<TransferFulfillmentMessage>> consumerFactory() throws Exception {
