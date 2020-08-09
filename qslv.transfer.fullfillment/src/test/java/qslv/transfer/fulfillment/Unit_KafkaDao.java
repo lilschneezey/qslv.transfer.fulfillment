@@ -35,6 +35,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import qslv.common.kafka.TraceableMessage;
 import qslv.transfer.request.TransferFulfillmentMessage;
+import qslv.transfer.response.TransferFulfillmentDeadLetter;
 import qslv.util.ElapsedTimeSLILogger;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,7 +62,6 @@ public class Unit_KafkaDao {
 		kafkaDao.setKafkaTemplate(kafkaTemplate);
 		kafkaDao.setConfig(config);
 		kafkaDao.setObjectMapper(objectMapper);
-		kafkaDao.setKafkaTimer(kafkaTimer);
 		config.setKafkaDeadLetterQueue("dead.test.letter.queue");
 		config.setAitid("234234");
 		config.setKafkaTimeout(23423);
@@ -81,28 +81,24 @@ public class Unit_KafkaDao {
 		TraceableMessage<TransferFulfillmentMessage> message = setup_message();
 
 		//-Execute----------------------------		
-		kafkaDao.produceDLQMessage(message);
-		
+		kafkaDao.produceDLQMessage(new TransferFulfillmentDeadLetter(message.getPayload(), new Exception("This is a test exception.")));
+
 		//-Verify----------------------------		
 		verify(future).get(anyLong(), any(TimeUnit.class) );
 		ArgumentCaptor<String> arg = ArgumentCaptor.forClass(String.class);
 		verify(kafkaTemplate).send(anyString(), anyString(), arg.capture());
-		TraceableMessage<TransferFulfillmentMessage> result = objectMapper.readValue(arg.getValue(), new TypeReference<TraceableMessage<TransferFulfillmentMessage>>() {});
+		TransferFulfillmentDeadLetter result = objectMapper.readValue(arg.getValue(), new TypeReference<TransferFulfillmentDeadLetter>() {});
 		
 		assertNotNull(result);
-		assertEquals(message.getBusinessTaxonomyId(), result.getBusinessTaxonomyId());
-		assertEquals(message.getCorrelationId(), result.getCorrelationId());
-		assertEquals(message.getMessageCreationTime(), result.getMessageCreationTime());
-		assertEquals(message.getProducerAit(), result.getProducerAit());
 
-		assertNotNull(result.getPayload());
-		assertEquals(message.getPayload().getVersion(), result.getPayload().getVersion());
-		assertEquals(message.getPayload().getFromAccountNumber(), result.getPayload().getFromAccountNumber());
-		assertEquals(message.getPayload().getRequestUuid(), result.getPayload().getRequestUuid());
-		assertEquals(message.getPayload().getToAccountNumber(), result.getPayload().getToAccountNumber());
-		assertEquals(message.getPayload().getReservationUuid(), result.getPayload().getReservationUuid());
-		assertEquals(message.getPayload().getTransactionAmount(), result.getPayload().getTransactionAmount());
-		assertEquals(message.getPayload().getTransactionMetaDataJson(), result.getPayload().getTransactionMetaDataJson());
+		assertNotNull(result.getRequest());
+		assertEquals(message.getPayload().getVersion(), result.getRequest().getVersion());
+		assertEquals(message.getPayload().getFromAccountNumber(), result.getRequest().getFromAccountNumber());
+		assertEquals(message.getPayload().getRequestUuid(), result.getRequest().getRequestUuid());
+		assertEquals(message.getPayload().getToAccountNumber(), result.getRequest().getToAccountNumber());
+		assertEquals(message.getPayload().getReservationUuid(), result.getRequest().getReservationUuid());
+		assertEquals(message.getPayload().getTransactionAmount(), result.getRequest().getTransactionAmount());
+		assertEquals(message.getPayload().getTransactionMetaDataJson(), result.getRequest().getTransactionMetaDataJson());
 	}
 	
 	@Test
@@ -119,7 +115,7 @@ public class Unit_KafkaDao {
 		
 		//--Execute--------------	
 		assertThrows(TransientDataAccessResourceException.class, () -> {
-			kafkaDao.produceDLQMessage(message);
+			kafkaDao.produceDLQMessage(new TransferFulfillmentDeadLetter(message.getPayload(), new Exception("This is a test exception.")));
 		});
 	}
 
@@ -144,7 +140,7 @@ public class Unit_KafkaDao {
 		
 		//--Execute--------------	
 		assertThrows(NonTransientDataAccessResourceException.class, () -> {
-			kafkaDao.produceDLQMessage(message);
+			kafkaDao.produceDLQMessage(new TransferFulfillmentDeadLetter(message.getPayload(), new Exception("This is a test exception.")));
 		});
 	}
 	

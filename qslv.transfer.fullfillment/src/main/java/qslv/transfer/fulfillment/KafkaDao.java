@@ -15,9 +15,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Repository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import qslv.common.kafka.TraceableMessage;
-import qslv.transfer.request.TransferFulfillmentMessage;
-import qslv.util.ElapsedTimeSLILogger;
+import qslv.transfer.response.TransferFulfillmentDeadLetter;
 
 @Repository
 public class KafkaDao {
@@ -29,8 +27,6 @@ public class KafkaDao {
 	private KafkaTemplate<String, String> kafkaTemplate;
 	@Autowired
 	private ObjectMapper objectMapper;
-	@Autowired
-	private ElapsedTimeSLILogger kafkaTimer;
 
 
 	public void setConfig(ConfigProperties config) {
@@ -45,39 +41,33 @@ public class KafkaDao {
 		this.objectMapper = objectMapper;
 	}
 
-	public void setKafkaTimer(ElapsedTimeSLILogger kafkaTimer) {
-		this.kafkaTimer = kafkaTimer;
-	}
-
-	public void produceDLQMessage(TraceableMessage<TransferFulfillmentMessage> message) throws DataAccessException {
+	public void produceDLQMessage(TransferFulfillmentDeadLetter message) throws DataAccessException {
 		log.trace("ENTRY produceDLQMessage");
 		
-		kafkaTimer.logElapsedTime(() -> {
-		
-			try {
-				String messageJson = objectMapper.writer().withDefaultPrettyPrinter().writeValueAsString(message);
-				
-				//TODO: retries across data centers
-				// retries handled internally in kafka
-				// wait with timemout for post to complete. 
-				// kafkaTemplate auto-flush is set to true. timeouts are in properties.
-	
-				ProducerRecord<String ,String> record = 
-					kafkaTemplate.send(config.getKafkaDeadLetterQueue(), message.getPayload().getFromAccountNumber(), messageJson)
+		try {
+			String messageJson = objectMapper.writer().withDefaultPrettyPrinter().writeValueAsString(message);
+
+			// TODO: retries across data centers
+			// retries handled internally in kafka
+			// wait with timemout for post to complete.
+			// kafkaTemplate auto-flush is set to true. timeouts are in properties.
+
+			ProducerRecord<String, String> record = kafkaTemplate
+					.send(config.getKafkaDeadLetterQueue(), message.getRequest().getFromAccountNumber(), messageJson)
 					.get(config.getKafkaTimeout(), TimeUnit.MILLISECONDS).getProducerRecord();
-					
-				log.debug("Kakfa Produce {}", record.value());
-			} catch ( ExecutionException ex) {
-				log.debug(ex.getLocalizedMessage());
-				throw new TransientDataAccessResourceException("Kafka Producer failure", ex);
-			} catch ( TimeoutException | InterruptedException  ex) {
-				log.debug(ex.getLocalizedMessage());
-				throw new TransientDataAccessResourceException("Kafka Producer failure", ex);
-			} catch (JsonProcessingException ex) {
-				log.debug(ex.getLocalizedMessage());
-				throw new NonTransientDataAccessResourceException("Jackson JSON object Mapper failed for Kafka Producer.", ex);
-			}
-		});
+
+			log.debug("Kakfa Produce {}", record.value());
+		} catch (ExecutionException ex) {
+			log.debug(ex.getLocalizedMessage());
+			throw new TransientDataAccessResourceException("Kafka Producer failure", ex);
+		} catch (TimeoutException | InterruptedException ex) {
+			log.debug(ex.getLocalizedMessage());
+			throw new TransientDataAccessResourceException("Kafka Producer failure", ex);
+		} catch (JsonProcessingException ex) {
+			log.debug(ex.getLocalizedMessage());
+			throw new NonTransientDataAccessResourceException("Jackson JSON object Mapper failed for Kafka Producer.",
+					ex);
+		}
 		
 		// TODO: log time it took
 		log.trace("EXIT produceDLQMessage");

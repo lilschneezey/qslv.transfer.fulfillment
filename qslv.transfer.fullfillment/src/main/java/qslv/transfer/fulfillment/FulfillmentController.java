@@ -14,6 +14,7 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Controller;
 import qslv.common.kafka.TraceableMessage;
 import qslv.transfer.request.TransferFulfillmentMessage;
+import qslv.transfer.response.TransferFulfillmentDeadLetter;
 import qslv.util.EnableQuickSilver;
 import qslv.util.LogKafkaTracingData;
 import qslv.util.ServiceElapsedTimeSLI;
@@ -45,7 +46,6 @@ public class FulfillmentController {
 			//TODO Log instrumentation
 			//TODO time processing of message.
 
-
 			validatePayload(data.value().getPayload());	
 			fulfillmentService.transferFunds(data.value());
 
@@ -60,7 +60,7 @@ public class FulfillmentController {
 		} catch (Exception ex) {
 			log.error("Unexpected exception thrown. Sending to DLQ. {}", ex.getLocalizedMessage());
 			try {
-				fulfillmentService.sendToDeadLetterQueue(data.value());
+				fulfillmentService.sendToDeadLetterQueue(new TransferFulfillmentDeadLetter(data.value().getPayload(), ex));
 			} catch (Exception iex) {
 				log.error("Unexpected exception while sending to DLQ. Keep on Kafka. {}", iex.getLocalizedMessage());
 				acknowledgment.nack(10000L);
@@ -72,8 +72,8 @@ public class FulfillmentController {
 	}
 
 	private void validatePayload(TransferFulfillmentMessage payload) throws NonTransientDataAccessResourceException {
-		if (false == payload.getVersion().equals(TransferFulfillmentMessage.version1_0)) {
-			throw new NonTransientDataAccessResourceException("Malformed message. invalid version.");
+		if (payload.getVersion() == null || false == payload.getVersion().equals(TransferFulfillmentMessage.version1_0)) {
+			throw new NonTransientDataAccessResourceException("Malformed message. Invalid version.");
 		}
 		if (payload.getFromAccountNumber() == null || payload.getFromAccountNumber().isEmpty()) {
 			throw new NonTransientDataAccessResourceException("Malformed message payload. Missing From Account Number.");

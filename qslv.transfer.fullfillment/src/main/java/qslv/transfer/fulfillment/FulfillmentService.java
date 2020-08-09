@@ -10,6 +10,7 @@ import qslv.transaction.request.TransactionRequest;
 import qslv.transaction.response.CommitReservationResponse;
 import qslv.transaction.response.TransactionResponse;
 import qslv.transfer.request.TransferFulfillmentMessage;
+import qslv.transfer.response.TransferFulfillmentDeadLetter;
 
 @Service
 public class FulfillmentService {
@@ -63,7 +64,7 @@ public class FulfillmentService {
 		log.trace("service.transferFunds EXIT");
 	}
 	
-	public void sendToDeadLetterQueue(final TraceableMessage<TransferFulfillmentMessage> message) {
+	public void sendToDeadLetterQueue(final TransferFulfillmentDeadLetter message) {
 		log.trace("service.sendToDeadLetterQueue ENTRY");
 		kafkaDao.produceDLQMessage(message);
 		log.trace("service.sendToDeadLetterQueue EXIT");

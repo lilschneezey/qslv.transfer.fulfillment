@@ -2,8 +2,8 @@ metadata:
   name: bs-${project.artifactId}
 data:
   application.properties: |
-    qslv.post-transaction-url=reservation-url=http://qslv-transaction-rest:8080/Transaction
-    qslv.commit-reservation-url=http://qslv-transaction-rest:8080/CommitReservation
+    qslv.post-transaction-url=reservation-url=http://qslv-transaction-rest-quick-silver.192.168.64.3.nip.io/Transaction
+    qslv.commit-reservation-url=http://qslv-transaction-rest-quick-silver.192.168.64.3.nip.io/CommitReservation
     qslv.rest-connect-timeout=500
     qslv.rest-connection-request-timeout=500
     qslv.rest-attempts=3
@@ -12,7 +12,8 @@ data:
     qslv.rest-timeout=500
     qslv.kafka-transfer-request-queue=online.transfer.requests
     qslv.kafka-dead-letter-queue=dlq.transfer.requests
-    qslv.kafka-properties=/deployments/config/kafka-consumer/kafka.properties
+    qslv.kafka-producer-properties-path=/deployments/config/kafka-producer/kafka.properties
+    qslv.kafka-consumer-properties-path=/deployments/config/kafka-consumer/kafka.properties
     qslv.kafka-timeout=1000
     management.endpoint.health.show-details=always
     management.endpoint.health.show-components=always

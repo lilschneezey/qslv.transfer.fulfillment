@@ -18,8 +18,9 @@ public class ConfigProperties {
 	private int restBackoffDelayMax = 500; 
 	private String kafkaTransferRequestQueue;
 	private String kafkaDeadLetterQueue;
-	private String kafkaProperties;
 	private int kafkaTimeout;
+	private String kafkaConsumerPropertiesPath;
+	private String kafkaProducerPropertiesPath;
 
 	public String getAitid() {
 		return aitid;
@@ -109,16 +110,20 @@ public class ConfigProperties {
 		this.kafkaDeadLetterQueue = kafkaDeadLetterQueue;
 	}
 
-	public String getKafkaProperties() {
-		return kafkaProperties;
+	public String getKafkaConsumerPropertiesPath() {
+		return kafkaConsumerPropertiesPath;
 	}
 
-	public void setKafkaProperties(String kafkaProperties) {
-		this.kafkaProperties = kafkaProperties;
+	public void setKafkaConsumerPropertiesPath(String kafkaConsumerPropertiesPath) {
+		this.kafkaConsumerPropertiesPath = kafkaConsumerPropertiesPath;
 	}
-	
-	public String[] getKafkaPropertiesArray() {
-		return kafkaProperties.split(",");
+
+	public String getKafkaProducerPropertiesPath() {
+		return kafkaProducerPropertiesPath;
+	}
+
+	public void setKafkaProducerPropertiesPath(String kafkaProducerPropertiesPath) {
+		this.kafkaProducerPropertiesPath = kafkaProducerPropertiesPath;
 	}
 
 	public int getKafkaTimeout() {

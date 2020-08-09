@@ -1,20 +1,15 @@
 package qslv.transfer.fulfillment;
 
-import java.util.Collections;
-
 import org.apache.http.impl.client.HttpClients;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
 
-import qslv.util.ElapsedTimeSLILogger;
 
 @Configuration
 public class RestConfig {
@@ -46,16 +41,5 @@ public class RestConfig {
 		retryTemplate.setBackOffPolicy(bop);
 		
 		return retryTemplate;
-	}
-	
-	@Bean
-	ElapsedTimeSLILogger transactionTimer() {
-		return new ElapsedTimeSLILogger(LoggerFactory.getLogger(TransactionDao.class), config.getAitid(), config.getPostTransactionUrl(), 
-				Collections.singletonList(TransientDataAccessResourceException.class)); 
-	}
-	@Bean
-	ElapsedTimeSLILogger commitTimer() {
-		return new ElapsedTimeSLILogger(LoggerFactory.getLogger(TransactionDao.class), config.getAitid(), config.getCommitReservationUrl(), 
-				Collections.singletonList(TransientDataAccessResourceException.class)); 
 	}
 }

@@ -26,7 +26,6 @@ import qslv.transaction.request.CommitReservationRequest;
 import qslv.transaction.request.TransactionRequest;
 import qslv.transaction.response.CommitReservationResponse;
 import qslv.transaction.response.TransactionResponse;
-import qslv.util.ElapsedTimeSLILogger;
 
 @Repository
 public class TransactionDao {
@@ -43,10 +42,6 @@ public class TransactionDao {
 	private RestTemplateProxy restTemplateProxy;
 	@Autowired
 	private RetryTemplate retryTemplate;
-	@Autowired
-	ElapsedTimeSLILogger transactionTimer;
-	@Autowired
-	ElapsedTimeSLILogger commitTimer;
 	
 	public ConfigProperties getConfig() {
 		return config;
@@ -60,87 +55,58 @@ public class TransactionDao {
 		this.restTemplateProxy = restTemplateProxy;
 	}
 	
-	public TransactionResponse recordTransaction(final TraceableMessage<?> message,final TransactionRequest request) {
+	public TransactionResponse recordTransaction(final TraceableMessage<?> message, final TransactionRequest request) {
+		log.warn("recordTransaction ENTRY");
 
-		log.debug("recordTransaction ENTRY {}", request.toString());
+		TransactionResponse response = callService(message, 
+				config.getPostTransactionUrl(), 
+				TransactionRequest.VERSION_1_0,
+				request, 
+				transactionResponseType);
 
-		HttpHeaders headers = buildHeaders(message);
-		long start = System.nanoTime();
-		ResponseEntity<TimedResponse<TransactionResponse>> response = transactionTimer.logElapsedTime(() -> {
-			try {
-				return retryTemplate.execute(new RetryCallback<ResponseEntity<TimedResponse<TransactionResponse>>, ResourceAccessException>() {
-					public ResponseEntity<TimedResponse<TransactionResponse>> doWithRetry( RetryContext context) throws ResourceAccessException {
-						return restTemplateProxy.exchange(config.getPostTransactionUrl(), 
-								HttpMethod.POST,
-								new HttpEntity<TransactionRequest>(request, headers), 
-								transactionResponseType
-								);
-					}
-				});
-			}
-			catch (ResourceAccessException ex) {
-				String msg = String.format("Exhausted %d retries for POST %s.", config.getRestAttempts(), config.getPostTransactionUrl());
-				log.warn(msg);
-				throw new TransientDataAccessResourceException(msg,ex);
-			}
-			catch (Exception ex) {
-				log.info("{} URL {} FAIL AIT-ID: {} Client Elapsed-Time: {}", HttpMethod.POST, config.getPostTransactionUrl(), 
-						config.getAitid(), (System.nanoTime() - start));
-				log.debug(ex.getLocalizedMessage());
-				throw (ex);
-			}
-		});
-		if (	false == response.hasBody() 
-				|| false == response.getStatusCode().equals(HttpStatus.CREATED)
-				|| (response.getBody().getPayload().getStatus()) != TransactionResponse.SUCCESS
-					&& response.getBody().getPayload().getStatus() != TransactionResponse.ALREADY_PRESENT ) {
-			String msg = String.format("Unexpected return from %s Rest Service. %s", config.getPostTransactionUrl(), response.toString());
-			log.error(msg);
-			throw new NonTransientDataAccessResourceException(msg);
-		}
-		log.info("{} URL {} SUCCESS AIT-ID: {} Client Elapsed-Time: {} Server Elapsed-Time {}", HttpMethod.POST, config.getPostTransactionUrl(), 
-				config.getAitid(), (System.nanoTime() - start), response.getBody().getServiceTimeElapsed());
-		return response.getBody().getPayload();
+		log.warn("recordTransaction EXIT");
+		return response;
 	}
-	
-	public CommitReservationResponse commitReservation(final TraceableMessage<?> message, CommitReservationRequest request) {
-		
-		log.debug("recordTransaction ENTRY {}", request.toString());
+
+	public CommitReservationResponse commitReservation(final TraceableMessage<?> message, final CommitReservationRequest request) {
+		log.warn("commitReservation ENTRY");
+
+		CommitReservationResponse response = callService(message, 
+				config.getCommitReservationUrl(), 
+				CommitReservationRequest.VERSION_1_0,
+				request, 
+				commitResponseType);
+
+		log.warn("commitReservation EXIT");
+		return response;
+	}
+
+	private <M,R> R callService(final TraceableMessage<?> message, String url, String version, M request, ParameterizedTypeReference<TimedResponse<R>> typereference) {
+		log.trace("commitReservation ENTRY");
 
 		HttpHeaders headers = buildHeaders(message);
-		long start = System.nanoTime();
-		ResponseEntity<TimedResponse<CommitReservationResponse>> response = transactionTimer.logElapsedTime(() -> {
-			try {
-				return retryTemplate.execute(new RetryCallback<ResponseEntity<TimedResponse<CommitReservationResponse>>, ResourceAccessException>() {
-					public ResponseEntity<TimedResponse<CommitReservationResponse>> doWithRetry( RetryContext context) throws ResourceAccessException {
-						return restTemplateProxy.exchange(config.getCommitReservationUrl(), HttpMethod.POST,
-								new HttpEntity<CommitReservationRequest>(request, headers), 
-								commitResponseType);
-					}
-				});
-			}
-			catch (ResourceAccessException ex) {
-				String msg = String.format("Exhausted %d retries for POST %s.", config.getRestAttempts(), config.getCommitReservationUrl());
-				log.warn(msg);
-				throw new TransientDataAccessResourceException(msg,ex);
-			} catch (Exception ex) {
-				log.info("{} URL {} FAIL AIT-ID: {} Client Elapsed-Time: {}", HttpMethod.POST, config.getCommitReservationUrl(), 
-						config.getAitid(), (System.nanoTime() - start));
-				log.debug(ex.getLocalizedMessage());
-				throw (ex);
-			}
-		});
-		
-		if (false == response.hasBody() 
-				|| false == response.getStatusCode().equals(HttpStatus.CREATED)
-				|| (response.getBody().getPayload().getStatus() != TransactionResponse.SUCCESS
-					&& response.getBody().getPayload().getStatus() != TransactionResponse.ALREADY_PRESENT )) {
-			String msg = String.format("Unexpected return from %s Service. %s", config.getCommitReservationUrl(), response.toString());
+		headers.add(TraceableRequest.ACCEPT_VERSION, version);
+		ResponseEntity<TimedResponse<R>> response = null;
+		try {
+			response = retryTemplate.execute(new RetryCallback<ResponseEntity<TimedResponse<R>>, ResourceAccessException>() {
+				public ResponseEntity<TimedResponse<R>> doWithRetry( RetryContext context) throws ResourceAccessException {
+					return restTemplateProxy.exchange(url, HttpMethod.POST,
+							new HttpEntity<M>(request, headers), typereference);
+			}});
+		} catch (ResourceAccessException ex) {
+			String msg = String.format("Exhausted %d retries for POST %s.", config.getRestAttempts(), url);
+			log.warn(msg);
+			throw new TransientDataAccessResourceException(msg, ex);
+		} catch (Exception ex) {
+			log.error(ex.getLocalizedMessage());
+			throw (ex);
+		}
+		if (!response.hasBody() || !response.getStatusCode().equals(HttpStatus.CREATED) ) {
+			String msg = String.format("Unexpected return from %s Service. %s", url, response.toString());
 			log.error(msg);
 			throw new NonTransientDataAccessResourceException(msg);
 		}
-		log.info("{} URL {} SUCCESS AIT-ID: {} Client Elapsed-Time: {} Server Elapsed-Time {}", HttpMethod.POST, config.getCommitReservationUrl(), 
-				config.getAitid(), (System.nanoTime() - start), response.getBody().getServiceTimeElapsed());
+		log.trace("commitReservation ENTRY");
 		return response.getBody().getPayload();
 	}
 	
