@@ -2,7 +2,7 @@ metadata:
   name: bs-${project.artifactId}
 data:
   application.properties: |
-    qslv.post-transaction-url=reservation-url=http://qslv-transaction-rest-quick-silver.192.168.64.3.nip.io/Transaction
+    qslv.post-transaction-url=http://qslv-transaction-rest-quick-silver.192.168.64.3.nip.io/Transaction
     qslv.commit-reservation-url=http://qslv-transaction-rest-quick-silver.192.168.64.3.nip.io/CommitReservation
     qslv.rest-connect-timeout=500
     qslv.rest-connection-request-timeout=500
@@ -15,6 +15,7 @@ data:
     qslv.kafka-producer-properties-path=/deployments/config/kafka-producer/kafka.properties
     qslv.kafka-consumer-properties-path=/deployments/config/kafka-consumer/kafka.properties
     qslv.kafka-timeout=1000
+    qslv.aitid=27384.123
     management.endpoint.health.show-details=always
     management.endpoint.health.show-components=always
   

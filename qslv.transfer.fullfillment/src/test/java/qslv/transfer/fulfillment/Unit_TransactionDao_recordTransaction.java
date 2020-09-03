@@ -53,7 +53,6 @@ class Unit_TransactionDao_recordTransaction {
 	
 	@BeforeEach
 	public void init() {
-		config.setAitid("723842");
 		config.setPostTransactionUrl("http://localhost:9091/Transaction");
 		transactionDao.setConfig(config);
 		restTemplateProxy.setRestTemplate(restTemplate);

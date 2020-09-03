@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "qslv")
 public class ConfigProperties {
 
-	private String aitid = "27834";
+	private String aitid;
 	private String postTransactionUrl;
 	private String commitReservationUrl;
 	private int restConnectionRequestTimeout = 1000;

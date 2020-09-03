@@ -37,8 +37,8 @@ public class FulfillmentController {
 		this.fulfillmentService = fulfillmentService;
 	}
 
-	@LogKafkaTracingData(value="TransferFulfillment::#{@configProperties.kafkaTransferRequestQueue}", ait="237482" )
-	@ServiceElapsedTimeSLI(value="TransferFulfillment::onMessage", injectResponse = false, ait = "44444")
+	@LogKafkaTracingData(value="TransferFulfillment::#{@configProperties.kafkaTransferRequestQueue}", ait="#{#{@configProperties.aitid}}" )
+	@ServiceElapsedTimeSLI(value="TransferFulfillment::onMessage", injectResponse = false, ait = "#{@configProperties.aitid}")
 	public void fulfill(final ConsumerRecord<String, TraceableMessage<TransferFulfillmentMessage>> data, Acknowledgment acknowledgment) {
 
 		try {

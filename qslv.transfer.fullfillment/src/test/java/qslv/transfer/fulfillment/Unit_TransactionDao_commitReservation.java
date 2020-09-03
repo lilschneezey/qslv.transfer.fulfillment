@@ -51,8 +51,8 @@ class Unit_TransactionDao_commitReservation {
 	
 	@BeforeEach
 	public void init() {
-		config.setAitid("723842");
 		config.setCommitReservationUrl("http://localhost:9091/CommitTransaction");
+		config.setAitid("TEST AIT");
 		transactionDao.setConfig(config);
 		restTemplateProxy.setRestTemplate(restTemplate);
 	}

@@ -63,7 +63,6 @@ public class Unit_KafkaDao {
 		kafkaDao.setConfig(config);
 		kafkaDao.setObjectMapper(objectMapper);
 		config.setKafkaDeadLetterQueue("dead.test.letter.queue");
-		config.setAitid("234234");
 		config.setKafkaTimeout(23423);
 	}
 	
